@@ -2,6 +2,8 @@
 window.addEventListener('load', init);
 
 function init() {
+  /* 基本の処理
+  ---------------------------------------------- */
   // サイズを指定
   const width = 960;
   const height = 540;
@@ -18,20 +20,7 @@ function init() {
 
   // カメラを作成
   const camera = new THREE.PerspectiveCamera(45, width / height);
-  camera.position.set(0, 0, +1000);
-
-  // ジオメトリを作成（円柱）
-  const geometry = new THREE.CylinderGeometry(200, 200, 350, 30);
-  // 画像を読み込む
-  const loader = new THREE.TextureLoader();
-  const labelImgPath = 'assets/images/test-label.jpg';
-  const texture = loader.load(labelImgPath);
-  // マテリアルを作成
-  const material = new THREE.MeshStandardMaterial({ map: texture });
-  //メッシュを作成
-  const mesh = new THREE.Mesh(geometry, material);
-  //シーンにメッシュを適用
-  scene.add(mesh);
+  camera.position.set(0, 0, +750);
 
   // 平行光源
   const directionalLight = new THREE.DirectionalLight(0xffffff);
@@ -39,22 +28,58 @@ function init() {
   // シーンに追加
   scene.add(directionalLight);
 
-  tick();
+  /* オブジェクト作成
+  ---------------------------------------------- */
+  // 画像を読み込む
+  const loader = new THREE.TextureLoader();
+  const labelImgPath = 'assets/images/test-label.jpg';
+  const texture = loader.load(labelImgPath);
+
+  // マテリアルの設定
+  const labelMaterial = new THREE.MeshStandardMaterial({ map: texture });
+  const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0xcccccc });
+
+  // 瓶のサイズを定義
+  const bottleRadiusSize = 50;
+
+  const mouthHeight = 80;
+  const neckHeight = 70;
+  const labelHeight = 200;
+  const bottomHeight = 15;
+
+  // 瓶の口部分
+  const mouthGeometry = new THREE.CylinderGeometry(bottleRadiusSize * 0.4, bottleRadiusSize * 0.4, mouthHeight, 32);
+  const mouthMesh = new THREE.Mesh(mouthGeometry, bodyMaterial);
+
+  // 瓶のネック部分
+  const neckGeometry = new THREE.CylinderGeometry(bottleRadiusSize * 0.4, bottleRadiusSize, neckHeight, 32);
+  const neckMesh = new THREE.Mesh(neckGeometry, bodyMaterial);
+
+  // 瓶の中央部（ラベルが貼られる部分）
+  const labelGeometry = new THREE.CylinderGeometry(bottleRadiusSize, bottleRadiusSize, labelHeight, 32);
+  const labelMesh = new THREE.Mesh(labelGeometry, labelMaterial);
+
+  // 瓶の底部
+  const bottomGeometry = new THREE.CylinderGeometry(bottleRadiusSize, bottleRadiusSize * 0.9, bottomHeight, 32);
+  const bottomMesh = new THREE.Mesh(bottomGeometry, bodyMaterial);
+
+  // 瓶をグループ化
+  const bottle = new THREE.Group();
+  bottle.add(bottomMesh);
+  bottle.add(labelMesh);
+  bottle.add(neckMesh);
+  bottle.add(mouthMesh);
+  scene.add(bottle);
+
+  // 全体の位置調整
+  mouthMesh.position.y = mouthHeight / 2 + neckHeight + labelHeight + bottomHeight;
+  neckMesh.position.y = neckHeight / 2 + labelHeight + bottomHeight;
+  labelMesh.position.y = labelHeight / 2 + bottomHeight;
+  bottomMesh.position.y = bottomHeight / 2;
+  bottle.position.y = -200;
 
   // 毎フレーム時に実行されるループイベントです
-  function tick() {
-    mesh.rotation.y += 0.01;
-    renderer.render(scene, camera); // レンダリング
-
-    requestAnimationFrame(tick);
-  }
-
-  // 画像のパスを変更してテクスチャを更新する関数
-  function changeLabelImagePath(newPath) {
-    const newTexture = loader.load(newPath);
-    mesh.material.map = newTexture;
-    mesh.material.needsUpdate = true; // マテリアルの更新を通知
-  }
+  tick();
 
   // クリックで画像変更
   const imgUpload = document.getElementById('img-upload');
@@ -74,4 +99,20 @@ function init() {
     };
     reader.readAsDataURL(file);
   });
+
+  /* 内部関数
+  ---------------------------------------------- */
+  function tick() {
+    bottle.rotation.y += 0.005;
+    renderer.render(scene, camera); // レンダリング
+
+    requestAnimationFrame(tick);
+  }
+
+  // 画像のパスを変更してテクスチャを更新する関数
+  function changeLabelImagePath(newPath) {
+    const newTexture = loader.load(newPath);
+    labelMesh.material.map = newTexture;
+    labelMesh.material.needsUpdate = true; // マテリアルの更新を通知
+  }
 }
